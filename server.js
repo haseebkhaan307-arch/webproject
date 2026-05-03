@@ -4,19 +4,33 @@ const fs = require('fs');
 const app = express();
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
 
-const DATA_FILE = path.join(__dirname, 'students.json');
+// 1. Updated Static Path: Go UP one level from 'api' to find the root files
+app.use(express.static(path.join(__dirname, '../')));
+
+// 2. Updated Data File Path: Go UP one level to find students.json
+const DATA_FILE = path.join(__dirname, '../students.json');
 
 const readData = () => {
-    if (!fs.existsSync(DATA_FILE)) return [];
-    return JSON.parse(fs.readFileSync(DATA_FILE));
+    try {
+        if (!fs.existsSync(DATA_FILE)) return [];
+        const data = fs.readFileSync(DATA_FILE, 'utf8');
+        return JSON.parse(data);
+    } catch (err) {
+        console.error("Read Error:", err);
+        return [];
+    }
 };
 
 const writeData = (data) => {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+    try {
+        fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+    } catch (err) {
+        console.error("Write Error:", err);
+    }
 };
 
+// Routes
 app.get('/api/students', (req, res) => res.json(readData()));
 
 app.post('/api/students', (req, res) => {
@@ -27,8 +41,7 @@ app.post('/api/students', (req, res) => {
     writeData(students);
     res.status(201).json(newStudent);
 });
-const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+// 3. IMPORTANT: Vercel does not need app.listen()
+// We export the app instead so Vercel can handle the traffic
+module.exports = app;
